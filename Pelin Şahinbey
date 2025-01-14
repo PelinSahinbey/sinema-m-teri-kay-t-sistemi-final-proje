@@ -1,0 +1,218 @@
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+// 1. Temel Sınıf (BaseEntity)
+abstract class BaseEntity {
+    private String ad;
+    private String soyad;
+
+    public BaseEntity(String ad, String soyad) {
+        this.ad = ad;
+        this.soyad = soyad;
+    }
+
+    public String getAd() {
+        return ad;
+    }
+
+    public String getSoyad() {
+        return soyad;
+    }
+
+    // Ortak bilgi gösterme metodu (Polymorphism kullanacağız)
+    public abstract void bilgiGoster();
+}
+
+// 2. Interface (IKayit)
+interface IKayit {
+    void kayitOl();
+}
+
+// 3. Film Sınıfı
+class Film {
+    private String ad;
+    private int sure;  // Dakika cinsinden film süresi
+    private String tur;
+
+    public Film(String ad, int sure, String tur) {
+        this.ad = ad;
+        this.sure = sure;
+        this.tur = tur;
+    }
+
+    public String getAd() {
+        return ad;
+    }
+
+    public int getSure() {
+        return sure;
+    }
+
+    public String getTur() {
+        return tur;
+    }
+
+    public void filmBilgisi() {
+        System.out.println("Film Adı: " + ad);
+        System.out.println("Film Süresi: " + sure + " dakika");
+        System.out.println("Film Türü: " + tur);
+    }
+}
+
+// 4. Salon Sınıfı
+class Salon {
+    private String salonAd;
+    private List<Film> filmler;
+    private List<Musteri> musteriListesi;
+
+    public Salon(String salonAd) {
+        this.salonAd = salonAd;
+        this.filmler = new ArrayList<>();
+        this.musteriListesi = new ArrayList<>();
+    }
+
+    public String getSalonAd() {
+        return salonAd;
+    }
+
+    public void filmEkle(Film film) {
+        filmler.add(film);
+    }
+
+    public void musteriKayitOl(Musteri musteri, Film film) {
+        musteriListesi.add(musteri);
+        System.out.println(musteri.getAd() + " " + musteri.getSoyad() + " filmi izlemeye kaydedildi.");
+    }
+
+    public void salonBilgisi() {
+        System.out.println("Salon Adı: " + salonAd);
+        System.out.println("Gösterilen Filmler:");
+        for (Film film : filmler) {
+            film.filmBilgisi();
+        }
+    }
+
+    public void musteriListele() {
+        System.out.println("Bu salonda kayıtlı müşteriler:");
+        for (Musteri musteri : musteriListesi) {
+            System.out.println(musteri.getAd() + " " + musteri.getSoyad());
+        }
+    }
+
+    public List<Film> getFilmler() {
+        return filmler;
+    }
+
+    public List<Musteri> getMusteriListesi() {
+        return musteriListesi;
+    }
+}
+
+// 5. Musteri Sınıfı
+class Musteri extends BaseEntity implements IKayit {
+    private String musteriNo;
+
+    public Musteri(String ad, String soyad, String musteriNo) {
+        super(ad, soyad);
+        this.musteriNo = musteriNo;
+    }
+
+    public String getMusteriNo() {
+        return musteriNo;
+    }
+
+    @Override
+    public void kayitOl() {
+        System.out.println(getAd() + " " + getSoyad() + " kaydınız başarıyla yapıldı.");
+    }
+
+    @Override
+    public void bilgiGoster() {
+        System.out.println("Müşteri Adı: " + getAd() + " " + getSoyad());
+        System.out.println("Müşteri No: " + musteriNo);
+    }
+}
+
+// 6. JsonHelper - JSON Verisi İşleme Yardımcı Sınıfı
+public class JsonHelper {
+    private static final Gson gson = new Gson();
+
+    // JSON dosyasına veri yazma
+    public static void yaz(List<?> list, String dosyaAdi) {
+        try (Writer writer = new FileWriter(dosyaAdi)) {
+            gson.toJson(list, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // JSON dosyasından veri okuma
+    public static <T> List<T> oku(String dosyaAdi, Class<T> clazz) {
+        try (Reader reader = new FileReader(dosyaAdi)) {
+            return gson.fromJson(reader, new TypeToken<List<T>>() {}.getType());
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+}
+
+// 7. SinemaSistemi - Ana Sınıf
+import java.util.Scanner;
+
+public class SinemaSistemi {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        // Filmler oluşturuluyor
+        Film film1 = new Film("Matrix", 136, "Bilim Kurgu");
+        Film film2 = new Film("Ben Efsaneyim", 118, "Komedi");
+
+        // Salonlar oluşturuluyor
+        Salon salon1 = new Salon("Salon 1");
+        Salon salon2 = new Salon("Salon 2");
+
+        // Filmler salona ekleniyor
+        salon1.filmEkle(film1);
+        salon2.filmEkle(film1);
+        salon2.filmEkle(film2);
+
+        // Müşteriler oluşturuluyor
+        Musteri musteri1 = new Musteri("Pelin", "Şahinbey", "M001");
+        Musteri musteri2 = new Musteri("Mina", "Özgül", "M002");
+
+        // Müşteriler kaydoluyor
+        salon1.musteriKayitOl(musteri1, film1);
+        salon2.musteriKayitOl(musteri2, film1);
+        salon2.musteriKayitOl(musteri1, film2); // Pelin Şahinbey, Ben Efsaneyim filmine de kaydoluyor.
+
+        // Salonların bilgilerini gösterme
+        salon1.salonBilgisi();
+        salon2.salonBilgisi();
+
+        // Müşteri bilgilerini gösterme
+        musteri1.bilgiGoster();
+        musteri2.bilgiGoster();
+
+        // Salonlardaki müşteri listesi
+        salon1.musteriListele();
+        salon2.musteriListele();
+
+        // Verileri JSON dosyasına kaydetme
+        // Salon, Film, Musteri nesnelerini liste olarak JSON dosyasına kaydediyoruz
+        JsonHelper.yaz(salon1.getFilmler(), "filmler_salon1.json");
+        JsonHelper.yaz(salon1.getMusteriListesi(), "musteriler_salon1.json");
+        JsonHelper.yaz(salon2.getFilmler(), "filmler_salon2.json");
+        JsonHelper.yaz(salon2.getMusteriListesi(), "musteriler_salon2.json");
+
+        // JSON dosyasından verileri okuma
+        System.out.println("\nVeri Okuma:");
+        System.out.println("Salon 1 Filmleri: " + JsonHelper.oku("filmler_salon1.json", Film.class));
+        System.out.println("Salon 1 Müşterileri: " + JsonHelper.oku("musteriler_salon1.json", Musteri.class));
+        System.out.println("Salon 2 Filmleri: " + JsonHelper.oku("filmler_salon2.json", Film.class));
+        System.out.println("Salon 2 Müşterileri: " + JsonHelper.oku("musteriler_salon2.json", Musteri.class));
+    }
+}
